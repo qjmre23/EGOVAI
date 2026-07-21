@@ -10,9 +10,7 @@ import {
 import cors from 'cors';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import helmet from 'helmet';
-import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { z, ZodError } from 'zod';
 import { generateAssistantResponse } from './ai/client.js';
 import { config } from './config.js';
@@ -21,7 +19,23 @@ import { demoStore } from './store.js';
 const app = express();
 
 app.disable('x-powered-by');
-app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", 'https:'],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https:'],
+        imgSrc: ["'self'", 'data:', 'https:'],
+        connectSrc: ["'self'", 'https:'],
+        fontSrc: ["'self'", 'https:', 'data:'],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: [],
+      },
+    },
+  }),
+);
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -267,15 +281,10 @@ app.post('/api/demo/reset', (_req, res) => {
   res.json({ ok: true });
 });
 
-// In production, serve the built Vite frontend and handle SPA routing
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
-const webDist = join(__dirname, '../../web/dist');
-if (existsSync(webDist)) {
-  app.use(express.static(webDist));
-  app.get('/{*path}', (_req, res) => res.sendFile(join(webDist, 'index.html')));
-} else {
-  app.use((_req, res) => res.status(404).json({ error: 'Demo endpoint not found' }));
-}
+// Serve built Vite frontend; fall back to API 404 for unmatched /api/* paths
+const webDist = join(process.cwd(), 'apps/web/dist');
+app.use(express.static(webDist));
+app.get('/{*path}', (_req, res) => res.sendFile(join(webDist, 'index.html')));
 
 app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
   if (error instanceof ZodError) {
