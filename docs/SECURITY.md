@@ -2,7 +2,7 @@
 
 ## Prototype threat model
 
-Primary risks are credential exposure, sensitive data entry, an AI hallucinating transactional outcomes, payment-state spoofing, invalid status jumps, browser notification leakage, and official-looking synthetic documents.
+Primary risks are credential exposure, sensitive data entry, an AI hallucinating transactional outcomes, payment-state spoofing, invalid status jumps, notification preview leakage, and official-looking synthetic documents.
 
 ## Credential handling
 
@@ -46,7 +46,7 @@ AI output is untrusted input. It is JSON-parsed, schema-validated, checked again
 - JSON body size is limited.
 - Request bodies and query values are validated with Zod.
 - The 20-second upstream timeout prevents indefinitely hanging requests.
-- Browser notifications use a generic lock-screen-safe preview.
+- Status updates remain inside the in-app Notification Center.
 
 ## Document safety
 

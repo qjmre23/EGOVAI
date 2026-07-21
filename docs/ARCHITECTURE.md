@@ -8,7 +8,7 @@ The prototype separates conversational presentation from transactional authority
 
 ```text
 Browser (React/Vite)
-  ├─ guided cards, accessibility, geolocation, browser notifications
+  ├─ guided cards, accessibility, geolocation, in-app notifications
   ├─ Zustand presentation state
   └─ /api/* only
           │

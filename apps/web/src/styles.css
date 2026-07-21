@@ -697,6 +697,32 @@ button:disabled {
 .manual-cities { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
 .manual-cities > span { grid-column: 1 / -1; margin: 3px 1px 0; color: var(--muted); font-size: 9px; font-weight: 750; }
 
+.group-size-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 7px;
+  margin-bottom: 9px;
+}
+
+.group-size-grid button {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid #d7e2ee;
+  border-radius: 12px;
+  color: var(--navy);
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.group-size-grid svg { color: var(--blue); }
+.group-size-grid span { display: flex; flex-direction: column; }
+.group-size-grid strong { font-size: 16px; line-height: 1; }
+.group-size-grid small { margin-top: 2px; color: var(--muted); font-size: 8px; font-weight: 750; }
+
 .loading-card {
   margin: 12px 0 6px 36px;
   min-height: 62px;
@@ -781,6 +807,7 @@ button:disabled {
 .slot-watch-card,
 .watch-active-card,
 .slot-offer-card,
+.group-info-card,
 .failure-card {
   border: 1px solid #dbe6f1;
   border-radius: 18px;
@@ -799,6 +826,7 @@ button:disabled {
 .slot-watch-card h3,
 .watch-active-card h3,
 .slot-offer-card h3,
+.group-info-card h3,
 .failure-card h3 { margin: 3px 0 4px; color: var(--navy); font-size: 14px; }
 .consent-card p { margin: 0; color: var(--muted); font-size: 9px; line-height: 1.45; }
 .consent-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 11px; color: var(--blue); background: #edf4ff; }
@@ -824,6 +852,15 @@ button:disabled {
 .requirements-box > div span { color: var(--text); }
 .requirements-box .warning-row { color: var(--warning); }
 .record-warning { display: flex; align-items: flex-start; gap: 6px; margin: 10px 0 0; color: #795c19; font-size: 8px; line-height: 1.4; }
+
+.group-info-card { display: grid; gap: 10px; }
+.group-info-heading { display: flex; align-items: center; gap: 9px; }
+.group-info-heading > div { width: 38px; height: 38px; display: grid; place-items: center; flex: 0 0 auto; color: var(--blue); background: #edf4ff; border-radius: 12px; }
+.group-info-heading span { display: flex; flex-direction: column; }
+.group-applicants { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.group-applicants > div { padding: 8px; border: 1px solid #dce6f0; border-radius: 10px; background: #f8fbff; }
+.group-applicants strong { display: block; color: var(--navy); font-size: 9px; }
+.group-applicants span { display: block; margin-top: 2px; color: var(--muted); font-size: 7px; line-height: 1.35; }
 
 .processing-grid { display: grid; gap: 8px; }
 .processing-card { width: 100%; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 10px; min-height: 76px; border: 1px solid #d8e3ee; border-radius: 15px; padding: 11px 13px; color: var(--navy); background: #fff; text-align: left; cursor: pointer; }
@@ -898,6 +935,10 @@ button:disabled {
 .success-orbit { width: 60px; height: 60px; margin: 2px auto 9px; display: grid; place-items: center; color: #fff; background: var(--success); border: 7px solid #dff2e5; border-radius: 50%; }
 .confirmation-card h3 { font-size: 16px; }
 .appointment-code { margin: 6px 0; color: var(--navy); font: 800 12px ui-monospace, SFMono-Regular, monospace; letter-spacing: 0.02em; }
+.group-code-list { display: grid; gap: 5px; margin: 0 0 12px; padding: 9px; border-radius: 11px; background: #f4f8fb; }
+.group-code-list span { display: flex; justify-content: space-between; gap: 7px; color: var(--blue); font: 800 8px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.group-code-list strong { color: var(--navy); font: 800 8px/1.35 Inter, ui-sans-serif, system-ui, sans-serif; }
+.group-code-list.compact { margin-top: 8px; }
 .mini-qr { width: 86px; height: 86px; margin: 10px auto; display: grid; place-items: center; color: var(--navy); background: #fff; border: 1px solid #dfe7e2; border-radius: 11px; }
 .confirmation-card .summary-list { text-align: left; }
 .document-warning { margin: 10px 0; padding: 7px; border: 1px dashed #d7a03e; border-radius: 7px; color: #8b5a06; background: #fff9ec; font-size: 7px; font-weight: 900; letter-spacing: 0.08em; text-align: center; }

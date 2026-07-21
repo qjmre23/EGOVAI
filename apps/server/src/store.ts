@@ -1,5 +1,6 @@
 import {
   DEFAULT_TIMES,
+  DEMO_GROUP_APPLICANTS,
   DEMO_OFFICES,
   DEMO_PASSPORT_RECORD,
   DEMO_PROFILE,
@@ -27,6 +28,14 @@ const minutesFromNow = (minutes: number) => new Date(Date.now() + minutes * 60_0
 const compactId = () => randomUUID().replaceAll('-', '').slice(0, 8).toUpperCase();
 
 const requirementsFor = (service: PassportServiceType, change: InformationChangeType) => {
+  if (service === 'GROUP') {
+    return [
+      'Personal appearance and biometrics for every applicant',
+      'Printed demonstration appointment packet for each applicant',
+      'Accepted demonstration ID or minor supporting document per applicant',
+      'Applicant-specific original and photocopy requirements',
+    ];
+  }
   if (service === 'NEW_ADULT') {
     return [
       'Personal appearance and biometrics',
@@ -106,11 +115,19 @@ export class DemoStore {
     return notification;
   }
 
-  prepareForm(service: PassportServiceType, change: InformationChangeType, consented: boolean) {
+  prepareForm(
+    service: PassportServiceType,
+    change: InformationChangeType,
+    consented: boolean,
+    groupApplicantCount = 1,
+  ) {
+    const normalizedGroupCount = service === 'GROUP' ? Math.min(Math.max(groupApplicantCount, 2), 5) : undefined;
     const form: ApplicationForm = {
       id: randomUUID(),
       type: service,
       profile: DEMO_PROFILE,
+      groupApplicantCount: normalizedGroupCount,
+      groupApplicants: normalizedGroupCount ? DEMO_GROUP_APPLICANTS.slice(0, normalizedGroupCount) : undefined,
       completionPercentage: consented ? 100 : 86,
       missingFields: consented ? [] : ['Profile consent'],
       requestedChange: change,
@@ -134,6 +151,7 @@ export class DemoStore {
     service: PassportServiceType;
     informationChange?: InformationChangeType;
     processingType: ProcessingType;
+    groupApplicantCount?: number;
   }) {
     const office = DEMO_OFFICES.find((item) => item.id === input.officeId);
     if (!office) throw new Error('Office not found');
@@ -141,11 +159,13 @@ export class DemoStore {
     const validTime = DEFAULT_TIMES.includes(input.time);
     if (!validDate || !validTime || this.forcedNoSlots) throw new Error('Slot not available');
 
+    const applicantCount = input.service === 'GROUP' ? Math.min(Math.max(input.groupApplicantCount ?? 2, 2), 5) : 1;
     const hold: AppointmentHold = {
       id: randomUUID(),
       ...input,
+      groupApplicantCount: input.service === 'GROUP' ? applicantCount : undefined,
       informationChange: input.informationChange ?? 'NO_CHANGE',
-      amount: FEES[input.processingType].total,
+      amount: FEES[input.processingType].total * applicantCount,
       expiresAt: minutesFromNow(this.acceleratedTimers ? 1 : 10),
       status: 'ACTIVE',
     };
@@ -236,6 +256,13 @@ export class DemoStore {
       date: hold.date,
       time: hold.time,
       service: hold.service,
+      groupApplicantCount: hold.groupApplicantCount,
+      groupAppointmentCodes:
+        hold.service === 'GROUP'
+          ? Array.from({ length: hold.groupApplicantCount ?? 2 }, (_, index) => (
+              `DFA-DEMO-G${index + 1}-${office.city.slice(0, 4).toUpperCase()}-${compactId().slice(0, 5)}`
+            ))
+          : undefined,
       processingType: hold.processingType,
       amountPaid: payment.amount,
       paymentReference: payment.reference,

@@ -57,10 +57,10 @@ type DemoState = {
   aiMode: 'ai' | 'guided';
   forcedGuided: boolean;
   aiEnabled: boolean;
-  browserNotifications: boolean;
   acceleratedTimers: boolean;
   forcedNoSlots: boolean;
   service: PassportServiceType | null;
+  groupApplicantCount: number | null;
   passportCondition: RenewalPassportCondition | null;
   informationChange: InformationChangeType;
   offices: DFAOffice[];
@@ -86,6 +86,8 @@ type DemoState = {
   sendMessage: (message: string) => Promise<void>;
   startBooking: () => void;
   chooseService: (service: PassportServiceType) => void;
+  chooseGroupSize: (count: number) => void;
+  confirmGroupApplicants: () => void;
   chooseCondition: (condition: RenewalPassportCondition) => void;
   chooseChange: (change: InformationChangeType) => void;
   findOffices: (mode: 'location' | 'manual' | 'all', city?: string) => Promise<void>;
@@ -111,7 +113,6 @@ type DemoState = {
   loadNotifications: () => Promise<void>;
   readNotification: (notificationId: string) => Promise<void>;
   setDemoSetting: (setting: 'aiEnabled' | 'forcedNoSlots' | 'acceleratedTimers', value: boolean) => Promise<void>;
-  toggleBrowserNotifications: () => Promise<void>;
   expireHold: () => Promise<void>;
   resetDemo: () => Promise<void>;
   clearChat: () => void;
@@ -122,15 +123,21 @@ const cityCoordinates: Record<string, [number, number]> = {
   Manila: [14.5995, 120.9842],
   Antipolo: [14.5865, 121.1762],
   Pasig: [14.5764, 121.0851],
+  'Cebu City': [10.3157, 123.8854],
+  'Davao City': [7.0731, 125.6128],
 };
 
-const safeBrowserNotice = (title: string) => {
-  if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification(title, {
-      body: 'Your DFA passport application has a new update. Open the prototype to view it.',
-    });
-  }
-};
+const journeyFastTrack: PassportJourneyStatus[] = [
+  'APPOINTMENT_CONFIRMED',
+  'APPOINTMENT_COMPLETED',
+  'BIOMETRICS_CAPTURED',
+  'UNDER_REVIEW',
+  'APPROVED',
+  'IN_PRODUCTION',
+  'DISPATCHED',
+  'READY_FOR_PICKUP',
+  'CLAIMED',
+];
 
 export const useDemoStore = create<DemoState>((set, get) => {
   const addAssistant = (text: string, tone: ChatMessage['tone'] = 'info') =>
@@ -146,10 +153,10 @@ export const useDemoStore = create<DemoState>((set, get) => {
     aiMode: 'guided',
     forcedGuided: false,
     aiEnabled: true,
-    browserNotifications: false,
     acceleratedTimers: false,
     forcedNoSlots: false,
     service: null,
+    groupApplicantCount: null,
     passportCondition: null,
     informationChange: 'NO_CHANGE',
     offices: [],
@@ -238,6 +245,7 @@ export const useDemoStore = create<DemoState>((set, get) => {
       const labels: Record<PassportServiceType, string> = {
         NEW_ADULT: 'New adult passport',
         ADULT_RENEWAL: 'Adult passport renewal',
+        GROUP: 'Group appointment',
         MINOR: 'Minor passport',
         LOST_OR_DAMAGED: 'Lost or damaged passport',
         UNSURE: 'I am not sure',
@@ -246,6 +254,9 @@ export const useDemoStore = create<DemoState>((set, get) => {
       if (service === 'ADULT_RENEWAL') {
         set({ service, conversationState: 'RENEWAL_PASSPORT_CONDITION' });
         addAssistant('What is the current condition of your passport?');
+      } else if (service === 'GROUP') {
+        set({ service, groupApplicantCount: null, conversationState: 'SELECT_GROUP_SIZE' });
+        addAssistant('How many people are applying together? DFA group appointment flow supports 2 to 5 applicants.');
       } else if (service === 'NEW_ADULT') {
         set({ service, conversationState: 'REQUEST_LOCATION' });
         addAssistant('To find nearby DFA offices, may eGovAI use your current location?');
@@ -255,6 +266,20 @@ export const useDemoStore = create<DemoState>((set, get) => {
           'warning',
         );
       }
+    },
+
+    chooseGroupSize: (groupApplicantCount) => {
+      addUser(`${groupApplicantCount} applicants`);
+      set({ groupApplicantCount, conversationState: 'REVIEW_GROUP_APPLICANTS' });
+      addAssistant(
+        'I prepared the group checklist. Each applicant keeps their own information and receives a separate demonstration appointment code.',
+      );
+    },
+
+    confirmGroupApplicants: () => {
+      addUser('Continue with group appointment');
+      set({ conversationState: 'REQUEST_LOCATION' });
+      addAssistant('Choose a DFA site for the group. I can use your location to show the nearest DFA locations first.');
     },
 
     chooseCondition: (passportCondition) => {
@@ -326,15 +351,17 @@ export const useDemoStore = create<DemoState>((set, get) => {
         }
         set({ offices, conversationState: 'SELECT_OFFICE' });
         addAssistant(
-          mode === 'location'
-            ? 'Based on your location, these are the nearest synthetic DFA offices with demonstration appointments.'
-            : 'Here are the synthetic DFA offices available in this prototype.',
+          get().forcedNoSlots
+            ? 'No-slot mode is on, so the nearest DFA locations are shown with no available demonstration slots.'
+            : mode === 'location'
+              ? 'Based on your location, these are the nearest DFA locations with demonstration appointments.'
+              : 'Here are the DFA locations available in this prototype.',
         );
       } catch {
         const offices = await api<DFAOffice[]>('/api/dfa/offices').catch(() => []);
         set({ offices, conversationState: 'REQUEST_LOCATION' });
         addAssistant(
-          'I could not access your location. You can select a city manually or view all synthetic locations.',
+          'I could not access your location. You can select a city manually or view all DFA locations.',
           'warning',
         );
       } finally {
@@ -411,12 +438,15 @@ export const useDemoStore = create<DemoState>((set, get) => {
           body: JSON.stringify({
             service: get().service,
             change: get().informationChange,
+            groupApplicantCount: get().groupApplicantCount ?? undefined,
             consented: true,
           }),
         });
         set({ form, conversationState: 'REVIEW_FORM' });
         addAssistant(
-          get().informationChange === 'MARRIED_SURNAME'
+          get().service === 'GROUP'
+            ? 'Your group appointment forms are ready. Review the shared schedule and the per-applicant information checklist before continuing.'
+            : get().informationChange === 'MARRIED_SURNAME'
             ? 'Your renewal form is ready. A synthetic PSA marriage-record check was added to the requirements.'
             : 'Your demonstration application is ready. Please review it before continuing.',
         );
@@ -430,7 +460,11 @@ export const useDemoStore = create<DemoState>((set, get) => {
     confirmForm: () => {
       addUser('Confirm information');
       set({ conversationState: 'SELECT_PROCESSING_TYPE' });
-      addAssistant('Choose a demonstration processing type. Fees are configurable mock data.');
+      addAssistant(
+        get().service === 'GROUP'
+          ? 'Choose a processing type. The demonstration total is calculated per applicant.'
+          : 'Choose a demonstration processing type. Fees are configurable mock data.',
+      );
     },
 
     chooseProcessing: (processingType) => {
@@ -452,6 +486,7 @@ export const useDemoStore = create<DemoState>((set, get) => {
             service: get().service,
             informationChange: get().informationChange,
             processingType: get().processingType,
+            groupApplicantCount: get().groupApplicantCount ?? undefined,
           }),
         });
         set({ hold, conversationState: 'HOLDING_SLOT' });
@@ -518,7 +553,9 @@ export const useDemoStore = create<DemoState>((set, get) => {
         });
         set({ appointment, conversationState: 'APPOINTMENT_CONFIRMED' });
         addAssistant(
-          `Payment successful! Your demonstration DFA passport appointment is confirmed. Code: ${appointment.code}`,
+          appointment.service === 'GROUP'
+            ? `Payment successful! Your group demonstration appointment is confirmed. Group code: ${appointment.code}`
+            : `Payment successful! Your demonstration DFA passport appointment is confirmed. Code: ${appointment.code}`,
           'success',
         );
         get().addToast('Demonstration appointment confirmed.', 'success');
@@ -573,7 +610,6 @@ export const useDemoStore = create<DemoState>((set, get) => {
           'success',
         );
         get().addToast('A matching demonstration slot is available!', 'success');
-        if (get().browserNotifications) safeBrowserNotice('Slot Watch found an appointment');
         await get().loadNotifications();
         event('Triggered Slot Watch cancellation alert');
       } catch {
@@ -622,18 +658,31 @@ export const useDemoStore = create<DemoState>((set, get) => {
         return;
       }
       try {
-        const journey = await api<PassportJourney>(`/api/demo/passport-journey/${applicationId}/status`, {
-          method: 'POST',
-          body: JSON.stringify({ status }),
-        });
+        const currentStatus = get().journey?.currentStatus ?? 'APPOINTMENT_CONFIRMED';
+        const fromIndex = journeyFastTrack.indexOf(currentStatus);
+        const toIndex = journeyFastTrack.indexOf(status);
+        const reviewIndex = journeyFastTrack.indexOf('UNDER_REVIEW');
+        const statuses =
+          get().acceleratedTimers && currentStatus === 'ADDITIONAL_REQUIREMENT' && toIndex > reviewIndex
+            ? ['UNDER_REVIEW' as PassportJourneyStatus, ...journeyFastTrack.slice(reviewIndex + 1, toIndex + 1)]
+            : get().acceleratedTimers && fromIndex >= 0 && toIndex > fromIndex
+              ? journeyFastTrack.slice(fromIndex + 1, toIndex + 1)
+              : get().acceleratedTimers && status === 'ADDITIONAL_REQUIREMENT' && currentStatus !== 'UNDER_REVIEW' && fromIndex >= 0
+                ? [...journeyFastTrack.slice(fromIndex + 1, reviewIndex + 1), status]
+                : [status];
+        let journey: PassportJourney | null = null;
+        for (const nextStatus of statuses) {
+          journey = await api<PassportJourney>(`/api/demo/passport-journey/${applicationId}/status`, {
+            method: 'POST',
+            body: JSON.stringify({ status: nextStatus }),
+          });
+        }
+        if (!journey) return;
         set({ journey });
         const latest = journey.events.at(-1)!;
         addAssistant(latest.explanation, status === 'READY_FOR_PICKUP' ? 'success' : 'info');
         get().addToast(latest.title, status === 'READY_FOR_PICKUP' ? 'success' : 'info');
-        if (status === 'READY_FOR_PICKUP' && get().browserNotifications) {
-          safeBrowserNotice('Your application has a new update');
-          set({ conversationState: 'PASSPORT_READY_FOR_PICKUP' });
-        }
+        if (status === 'READY_FOR_PICKUP') set({ conversationState: 'PASSPORT_READY_FOR_PICKUP' });
         await get().loadNotifications();
         event(`Passport Journey: ${latest.title}`);
       } catch {
@@ -660,25 +709,33 @@ export const useDemoStore = create<DemoState>((set, get) => {
       });
       set({ [setting]: value } as Pick<DemoState, typeof setting>);
       if (setting === 'aiEnabled') set({ forcedGuided: !value });
-      get().addToast(`${setting === 'forcedNoSlots' ? 'No-slot scenario' : setting} ${value ? 'enabled' : 'disabled'}.`);
+      if (setting === 'forcedNoSlots') {
+        if (value) {
+          set((state) => ({
+            offices: state.offices.map((office) => ({ ...office, availableSlotCount: 0 })),
+            selectedOffice: state.selectedOffice ? { ...state.selectedOffice, availableSlotCount: 0 } : null,
+            dates: state.dates.map((date) => ({ ...date, availableSlotCount: 0 })),
+            times: [],
+            selectedTime: null,
+          }));
+        } else {
+          const offices = await api<DFAOffice[]>('/api/dfa/offices').catch(() => get().offices);
+          set((state) => ({
+            offices,
+            selectedOffice: state.selectedOffice
+              ? offices.find((office) => office.id === state.selectedOffice?.id) ?? state.selectedOffice
+              : null,
+          }));
+        }
+      }
+      get().addToast(
+        setting === 'forcedNoSlots'
+          ? `No-slot locations ${value ? 'enabled' : 'disabled'}.`
+          : setting === 'acceleratedTimers'
+            ? `Accelerated timers and Passport Journey fast-forward ${value ? 'enabled' : 'disabled'}.`
+            : `${setting} ${value ? 'enabled' : 'disabled'}.`,
+      );
       event(`Changed ${setting} to ${String(value)}`);
-    },
-
-    toggleBrowserNotifications: async () => {
-      if (!('Notification' in window)) {
-        get().addToast('Browser notifications are unavailable here.', 'warning');
-        return;
-      }
-      if (get().browserNotifications) {
-        set({ browserNotifications: false });
-        event('Disabled browser notifications');
-        return;
-      }
-      const permission = await Notification.requestPermission();
-      const enabled = permission === 'granted';
-      set({ browserNotifications: enabled });
-      get().addToast(enabled ? 'Browser notifications enabled.' : 'Notification permission was not granted.', enabled ? 'success' : 'warning');
-      event(enabled ? 'Enabled browser notifications' : 'Notification permission denied');
     },
 
     expireHold: async () => {
@@ -705,6 +762,7 @@ export const useDemoStore = create<DemoState>((set, get) => {
         acceleratedTimers: false,
         forcedNoSlots: false,
         service: null,
+        groupApplicantCount: null,
         passportCondition: null,
         informationChange: 'NO_CHANGE',
         offices: [],

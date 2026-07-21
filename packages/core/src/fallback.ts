@@ -23,6 +23,7 @@ export function fallbackForState(state: ConversationState): AssistantResponse {
     IDLE: reply('SELECT_SERVICE', 'Certainly. What passport service do you need?', [
       ['New adult passport', 'NEW_ADULT'],
       ['Adult passport renewal', 'ADULT_RENEWAL'],
+      ['Group appointment', 'GROUP'],
       ['Minor passport', 'MINOR'],
       ['Lost or damaged passport', 'LOST_OR_DAMAGED'],
       ['I am not sure', 'UNSURE'],
@@ -30,11 +31,26 @@ export function fallbackForState(state: ConversationState): AssistantResponse {
     SELECT_SERVICE: reply('SELECT_SERVICE', 'What passport service do you need?', [
       ['New adult passport', 'NEW_ADULT'],
       ['Adult passport renewal', 'ADULT_RENEWAL'],
+      ['Group appointment', 'GROUP'],
       ['I am not sure', 'UNSURE'],
     ]),
     SELECT_APPLICANT_TYPE: reply(
       'SELECT_APPLICANT_TYPE',
       'Please choose the applicant type to continue this demonstration.',
+    ),
+    SELECT_GROUP_SIZE: reply(
+      'SELECT_GROUP_SIZE',
+      'How many people are applying together? DFA group appointment flow is for 2 to 5 applicants.',
+      [
+        ['2 applicants', '2'],
+        ['3 applicants', '3'],
+        ['4 applicants', '4'],
+        ['5 applicants', '5'],
+      ],
+    ),
+    REVIEW_GROUP_APPLICANTS: reply(
+      'REVIEW_GROUP_APPLICANTS',
+      'Review the information collected for each group applicant before choosing a DFA site.',
     ),
     RENEWAL_PASSPORT_CONDITION: reply(
       'RENEWAL_PASSPORT_CONDITION',
@@ -65,7 +81,7 @@ export function fallbackForState(state: ConversationState): AssistantResponse {
         ['View all locations', 'VIEW_ALL_OFFICES'],
       ],
     ),
-    FINDING_OFFICES: reply('FINDING_OFFICES', 'Finding nearby synthetic DFA offices…'),
+    FINDING_OFFICES: reply('FINDING_OFFICES', 'Finding nearby DFA locations...'),
     SELECT_OFFICE: reply(
       'SELECT_OFFICE',
       'Choose a synthetic DFA office to view its demonstration schedule.',

@@ -25,6 +25,11 @@ const peso = (amount: number) =>
   new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 0 }).format(amount);
 const timeLabel = (time: string) =>
   new Date(`2026-01-01T${time}:00`).toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' });
+const serviceLabel = (appointment: Appointment) => {
+  if (appointment.service === 'GROUP') return 'Group passport appointment';
+  if (appointment.service === 'ADULT_RENEWAL') return 'Adult ePassport renewal';
+  return 'New adult passport';
+};
 
 function AppointmentWalletCard({ appointment }: { appointment: Appointment }) {
   return (
@@ -45,6 +50,13 @@ function AppointmentWalletCard({ appointment }: { appointment: Appointment }) {
         </div>
       </div>
       <div className="wallet-code"><span>Appointment code</span><strong>{appointment.code}</strong></div>
+      {appointment.groupAppointmentCodes?.length ? (
+        <div className="group-code-list compact">
+          {appointment.groupAppointmentCodes.map((code, index) => (
+            <span key={code}><strong>Applicant {index + 1}</strong>{code}</span>
+          ))}
+        </div>
+      ) : null}
       <div className="wallet-card-actions">
         <Link className="primary-button" to={`/appointments/${appointment.id}`}>Open appointment <ArrowRight size={17} /></Link>
         <Link className="icon-button" to={`/passport-journey/${appointment.applicationId}`} aria-label="View Passport Journey"><Route size={19} /></Link>
@@ -133,11 +145,17 @@ export function AppointmentDetailPage() {
           <div className="packet-qr"><QRCodeSVG value={qrValue} size={108} level="M" /><span>DEMO QR</span></div>
         </section>
         <section className="packet-grid">
-          <div><span className="review-label">Service</span><strong>{appointment.service === 'ADULT_RENEWAL' ? 'Adult ePassport renewal' : 'New adult passport'}</strong><p>{appointment.processingType === 'REGULAR' ? 'Regular' : 'Expedited'} processing</p></div>
+          <div><span className="review-label">Service</span><strong>{serviceLabel(appointment)}</strong><p>{appointment.processingType === 'REGULAR' ? 'Regular' : 'Expedited'} processing</p></div>
           <div><span className="review-label">Payment</span><strong>{peso(appointment.amountPaid)} · Verified</strong><p>{appointment.paymentReference}</p></div>
           <div><span className="review-label">Application</span><strong>{appointment.applicationId.slice(0, 12)}••••</strong><p>Synthetic reference</p></div>
           <div><span className="review-label">Generated</span><strong>{format(new Date(appointment.createdAt), 'MMM d, yyyy')}</strong><p>{format(new Date(appointment.createdAt), 'h:mm a')}</p></div>
         </section>
+        {appointment.groupAppointmentCodes?.length ? (
+          <section className="packet-requirements">
+            <h3>Applicant codes</h3>
+            {appointment.groupAppointmentCodes.map((code, index) => <div key={code}><span><Check size={15} /></span>Applicant {index + 1}: {code}</div>)}
+          </section>
+        ) : null}
         <section className="packet-requirements">
           <h3>Bring on appointment day</h3>
           {appointment.requirements.map((requirement) => <div key={requirement}><span><Check size={15} /></span>{requirement}</div>)}

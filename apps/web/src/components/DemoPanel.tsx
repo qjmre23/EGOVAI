@@ -10,7 +10,6 @@ import {
   RotateCcw,
   Sparkles,
   Trash2,
-  WifiOff,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -138,17 +137,6 @@ export function DemoPanel({ embedded = false }: { embedded?: boolean }) {
           />
         </label>
         <label className="toggle-row">
-          <span><WifiOff size={16} /> Force guided mode</span>
-          <input
-            type="checkbox"
-            checked={state.forcedGuided}
-            onChange={(event) => {
-              useDemoStore.setState({ forcedGuided: event.target.checked });
-              state.addToast(event.target.checked ? 'Guided mode forced.' : 'AI responses allowed.');
-            }}
-          />
-        </label>
-        <label className="toggle-row">
           <span><CircleOff size={16} /> No-slot mode</span>
           <input
             type="checkbox"
@@ -163,10 +151,6 @@ export function DemoPanel({ embedded = false }: { embedded?: boolean }) {
             checked={state.acceleratedTimers}
             onChange={(event) => void state.setDemoSetting('acceleratedTimers', event.target.checked)}
           />
-        </label>
-        <label className="toggle-row">
-          <span><BellRing size={16} /> Browser notifications</span>
-          <input type="checkbox" checked={state.browserNotifications} onChange={() => void state.toggleBrowserNotifications()} />
         </label>
       </section>
 

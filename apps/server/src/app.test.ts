@@ -26,6 +26,46 @@ describe('demo API', () => {
     expect(response.body[0].distanceKm).toBe(0);
   });
 
+  it('marks nearest office results as no-slot locations when no-slot mode is enabled', async () => {
+    await request(app).post('/api/demo/settings').send({ forcedNoSlots: true }).expect(200);
+    const response = await request(app)
+      .get('/api/dfa/offices/nearby?latitude=14.5865&longitude=121.1762')
+      .expect(200);
+    expect(response.body[0].id).toBe('dfa-antipolo-demo');
+    expect(response.body[0].availableSlotCount).toBe(0);
+    const dates = await request(app).get('/api/dfa/offices/dfa-antipolo-demo/dates').expect(200);
+    expect(dates.body.every((date: { availableSlotCount: number }) => date.availableSlotCount === 0)).toBe(true);
+  });
+
+  it('creates group appointment packets with per-applicant codes and multiplied payment', async () => {
+    const form = await request(app).post('/api/dfa/forms/prepare').send({
+      service: 'GROUP',
+      groupApplicantCount: 3,
+      consented: true,
+    }).expect(201);
+    expect(form.body.groupApplicants).toHaveLength(3);
+    const hold = await request(app).post('/api/dfa/slots/hold').send({
+      officeId: 'dfa-antipolo-demo',
+      date: '2026-11-04',
+      time: '10:00',
+      service: 'GROUP',
+      processingType: 'REGULAR',
+      groupApplicantCount: 3,
+    }).expect(201);
+    expect(hold.body.amount).toBe(3000);
+    const payment = await request(app).post('/api/payments/sessions').send({
+      holdId: hold.body.id,
+      method: 'GCASH',
+      amount: 3000,
+    });
+    await request(app).post(`/api/demo/payments/${payment.body.id}/succeed`).expect(200);
+    const appointment = await request(app)
+      .post('/api/appointments/confirm')
+      .send({ paymentId: payment.body.id })
+      .expect(201);
+    expect(appointment.body.groupAppointmentCodes).toHaveLength(3);
+  });
+
   it('requires verified payment before confirmation and supports idempotent callbacks', async () => {
     const hold = await request(app).post('/api/dfa/slots/hold').send({
       officeId: 'dfa-antipolo-demo',

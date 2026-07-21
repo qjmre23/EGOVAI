@@ -8,6 +8,12 @@ describe('conversation state machine', () => {
     expect(canTransition('PAYMENT_SUCCESSFUL', 'APPOINTMENT_CONFIRMED')).toBe(true);
   });
 
+  it('allows group appointment setup before location selection', () => {
+    expect(canTransition('SELECT_SERVICE', 'SELECT_GROUP_SIZE')).toBe(true);
+    expect(canTransition('SELECT_GROUP_SIZE', 'REVIEW_GROUP_APPLICANTS')).toBe(true);
+    expect(canTransition('REVIEW_GROUP_APPLICANTS', 'REQUEST_LOCATION')).toBe(true);
+  });
+
   it('blocks skipping payment verification and booking prerequisites', () => {
     expect(canTransition('PAYMENT_PENDING', 'PAYMENT_SUCCESSFUL')).toBe(false);
     expect(canTransition('SELECT_OFFICE', 'APPOINTMENT_CONFIRMED')).toBe(false);

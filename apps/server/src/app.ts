@@ -71,13 +71,19 @@ app.post(
 );
 
 app.get('/api/demo/profile', (_req, res) => res.json(DEMO_PROFILE));
-app.get('/api/dfa/offices', (_req, res) => res.json(DEMO_OFFICES));
+
+const currentOffices = () =>
+  demoStore.forcedNoSlots
+    ? DEMO_OFFICES.map((office) => ({ ...office, availableSlotCount: 0 }))
+    : DEMO_OFFICES;
+
+app.get('/api/dfa/offices', (_req, res) => res.json(currentOffices()));
 
 app.get('/api/dfa/offices/nearby', (req, res) => {
   const query = z
     .object({ latitude: z.coerce.number().min(-90).max(90), longitude: z.coerce.number().min(-180).max(180) })
     .parse(req.query);
-  res.json(sortOfficesByDistance(DEMO_OFFICES, query.latitude, query.longitude));
+  res.json(sortOfficesByDistance(currentOffices(), query.latitude, query.longitude));
 });
 
 app.get('/api/dfa/offices/:officeId/dates', (req, res) => {
@@ -96,26 +102,28 @@ app.get('/api/dfa/offices/:officeId/dates/:date/times', (req, res) => {
 });
 
 const formSchema = z.object({
-  service: z.enum(['NEW_ADULT', 'ADULT_RENEWAL']),
+  service: z.enum(['NEW_ADULT', 'ADULT_RENEWAL', 'GROUP']),
   change: z
     .enum(['NO_CHANGE', 'MARRIED_SURNAME', 'RETURN_TO_MAIDEN', 'CORRECTION', 'OTHER'])
     .default('NO_CHANGE'),
+  groupApplicantCount: z.number().int().min(2).max(5).optional(),
   consented: z.literal(true),
 });
 app.post('/api/dfa/forms/prepare', (req, res) => {
   const input = formSchema.parse(req.body);
-  res.status(201).json(demoStore.prepareForm(input.service, input.change, input.consented));
+  res.status(201).json(demoStore.prepareForm(input.service, input.change, input.consented, input.groupApplicantCount));
 });
 
 const holdSchema = z.object({
   officeId: z.string().min(1),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   time: z.string().regex(/^\d{2}:\d{2}$/),
-  service: z.enum(['NEW_ADULT', 'ADULT_RENEWAL']),
+  service: z.enum(['NEW_ADULT', 'ADULT_RENEWAL', 'GROUP']),
   informationChange: z
     .enum(['NO_CHANGE', 'MARRIED_SURNAME', 'RETURN_TO_MAIDEN', 'CORRECTION', 'OTHER'])
     .optional(),
   processingType: z.enum(['REGULAR', 'EXPEDITED']),
+  groupApplicantCount: z.number().int().min(2).max(5).optional(),
 });
 app.post('/api/dfa/slots/hold', (req, res) => {
   res.status(201).json(demoStore.createHold(holdSchema.parse(req.body)));

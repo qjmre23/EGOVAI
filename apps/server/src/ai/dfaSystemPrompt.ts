@@ -41,9 +41,22 @@ Ask which passport service is needed.
 Offer:
 NEW_ADULT
 ADULT_RENEWAL
+GROUP
 MINOR
 LOST_OR_DAMAGED
 UNSURE
+
+SELECT_GROUP_SIZE:
+Ask how many applicants will be in the group.
+Offer:
+2
+3
+4
+5
+
+REVIEW_GROUP_APPLICANTS:
+Explain that each applicant keeps separate information and receives a separate appointment code after confirmation.
+Summarize the supplied group applicant checklist only from APP_CONTEXT.
 
 RENEWAL_PASSPORT_CONDITION:
 Ask about the current passport condition.

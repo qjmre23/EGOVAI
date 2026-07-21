@@ -4,6 +4,8 @@ export const conversationStates = [
   'IDLE',
   'SELECT_SERVICE',
   'SELECT_APPLICANT_TYPE',
+  'SELECT_GROUP_SIZE',
+  'REVIEW_GROUP_APPLICANTS',
   'RENEWAL_PASSPORT_CONDITION',
   'RENEWAL_INFORMATION_CHANGE',
   'REQUEST_LOCATION',
@@ -59,6 +61,7 @@ export type AllowedAction = (typeof allowedActions)[number];
 export type PassportServiceType =
   | 'NEW_ADULT'
   | 'ADULT_RENEWAL'
+  | 'GROUP'
   | 'MINOR'
   | 'LOST_OR_DAMAGED'
   | 'UNSURE';
@@ -125,6 +128,8 @@ export interface ApplicationForm {
   id: string;
   type: PassportServiceType;
   profile: DemoProfile;
+  groupApplicantCount?: number;
+  groupApplicants?: GroupApplicantSummary[];
   completionPercentage: number;
   missingFields: string[];
   requestedChange: InformationChangeType;
@@ -134,12 +139,21 @@ export interface ApplicationForm {
   consented: boolean;
 }
 
+export interface GroupApplicantSummary {
+  id: string;
+  label: string;
+  relationship: string;
+  service: 'NEW_ADULT' | 'ADULT_RENEWAL' | 'MINOR';
+  requestedInfo: string[];
+}
+
 export interface AppointmentHold {
   id: string;
   officeId: string;
   date: string;
   time: string;
   service: PassportServiceType;
+  groupApplicantCount?: number;
   informationChange?: InformationChangeType;
   processingType: ProcessingType;
   amount: number;
@@ -184,6 +198,8 @@ export interface Appointment {
   date: string;
   time: string;
   service: PassportServiceType;
+  groupApplicantCount?: number;
+  groupAppointmentCodes?: string[];
   processingType: ProcessingType;
   amountPaid: number;
   paymentReference: string;

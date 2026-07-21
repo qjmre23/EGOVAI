@@ -1,7 +1,9 @@
 import {
   DEMO_PASSPORT_RECORD,
+  DEMO_GROUP_APPLICANTS,
   DOCUMENT_WARNING,
   FEES,
+  GROUP_APPOINTMENT_INFO,
   type AppointmentDate,
   type AppointmentSlot,
   type DFAOffice,
@@ -36,6 +38,7 @@ import {
   Smartphone,
   Sparkles,
   TimerReset,
+  UsersRound,
   UserRoundCheck,
   X,
 } from 'lucide-react';
@@ -46,6 +49,7 @@ import { demoFee, useDemoStore, type ChatMessage } from '../store/useDemoStore';
 const serviceOptions: Array<{ label: string; value: PassportServiceType; icon: ReactNode }> = [
   { label: 'New adult passport', value: 'NEW_ADULT', icon: <FileCheck2 /> },
   { label: 'Adult passport renewal', value: 'ADULT_RENEWAL', icon: <RotateCcw /> },
+  { label: 'Group appointment', value: 'GROUP', icon: <UsersRound /> },
   { label: 'Minor passport', value: 'MINOR', icon: <UserRoundCheck /> },
   { label: 'Lost or damaged passport', value: 'LOST_OR_DAMAGED', icon: <CircleAlert /> },
   { label: 'I am not sure', value: 'UNSURE', icon: <Info /> },
@@ -68,6 +72,8 @@ const changeOptions: Array<{ label: string; value: InformationChangeType }> = [
   { label: 'Other change', value: 'OTHER' },
 ];
 
+const groupSizeOptions = [2, 3, 4, 5] as const;
+
 const dateLabel = (date: string) => format(parseISO(date), 'MMMM d');
 const longDate = (date: string) => format(parseISO(date), 'EEEE, MMMM d, yyyy');
 const timeLabel = (time: string) =>
@@ -77,6 +83,12 @@ const timeLabel = (time: string) =>
   });
 const peso = (amount: number) =>
   new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 0 }).format(amount);
+
+const serviceLabel = (service: PassportServiceType | null) => {
+  if (service === 'GROUP') return 'Group passport appointment';
+  if (service === 'ADULT_RENEWAL') return 'Adult ePassport renewal';
+  return 'New adult passport';
+};
 
 function MessageBubble({ message }: { message: ChatMessage }) {
   const isAssistant = message.role === 'assistant';
@@ -120,7 +132,7 @@ function OfficeCard({ office, onSelect }: { office: DFAOffice; onSelect: () => v
       <div className="office-card-top">
         <div className="office-icon"><Building2 size={21} /></div>
         <div>
-          <span className="synthetic-label">SYNTHETIC LOCATION</span>
+          <span className="synthetic-label">DFA SITE - DEMO DATA</span>
           <h3>{office.name}</h3>
           <p>{office.address}</p>
         </div>
@@ -195,10 +207,61 @@ function ConsentCard() {
   );
 }
 
+function GroupSizeCard() {
+  const chooseGroupSize = useDemoStore((state) => state.chooseGroupSize);
+  return (
+    <ChoiceList label="Group size">
+      <div className="group-size-grid">
+        {groupSizeOptions.map((count) => (
+          <button key={count} type="button" onClick={() => chooseGroupSize(count)}>
+            <UsersRound size={18} />
+            <span><strong>{count}</strong><small>applicants</small></span>
+          </button>
+        ))}
+      </div>
+      <p className="microcopy">DFA public guidance describes group appointment as 2 to 5 applicants, with separate appointment codes per applicant.</p>
+    </ChoiceList>
+  );
+}
+
+function GroupApplicantsCard() {
+  const { groupApplicantCount, confirmGroupApplicants } = useDemoStore();
+  const applicants = DEMO_GROUP_APPLICANTS.slice(0, groupApplicantCount ?? 2);
+  return (
+    <ChoiceList label="Group applicant information">
+      <article className="group-info-card">
+        <div className="group-info-heading">
+          <div><UsersRound size={23} /></div>
+          <span><span className="eyebrow">GROUP APPOINTMENT</span><h3>{applicants.length} applicants</h3></span>
+        </div>
+        <div className="group-applicants">
+          {applicants.map((applicant) => (
+            <div key={applicant.id}>
+              <strong>{applicant.label}</strong>
+              <span>{applicant.relationship} - {serviceLabel(applicant.service)}</span>
+            </div>
+          ))}
+        </div>
+        <section className="requirements-box">
+          <span className="review-label">Information asked per applicant</span>
+          {GROUP_APPOINTMENT_INFO.slice(0, 6).map((item) => (
+            <div key={item}><CheckCircle2 size={16} /><span>{item}</span></div>
+          ))}
+        </section>
+        <button className="primary-button full" type="button" onClick={confirmGroupApplicants}>
+          Continue to DFA sites <ArrowRight size={18} />
+        </button>
+        <p className="microcopy">The prototype keeps the shared schedule together, but each applicant remains separately identifiable in the packet.</p>
+      </article>
+    </ChoiceList>
+  );
+}
+
 function ReviewFormCard() {
   const { form, informationChange, confirmForm, addToast } = useDemoStore();
   if (!form) return null;
   const renewal = form.type === 'ADULT_RENEWAL';
+  const group = form.type === 'GROUP';
   return (
     <ChoiceList label="Application review">
       <article className="form-review-card">
@@ -206,7 +269,7 @@ function ReviewFormCard() {
           <div className="document-icon"><FileCheck2 size={22} /></div>
           <div>
             <span className="eyebrow">Review before continuing</span>
-            <h3>{renewal ? 'Passport renewal application' : 'New adult passport application'}</h3>
+            <h3>{group ? 'Group passport appointment' : renewal ? 'Passport renewal application' : 'New adult passport application'}</h3>
           </div>
           <span className="completion-ring" aria-label={`${form.completionPercentage}% complete`}>
             {form.completionPercentage}%
@@ -222,6 +285,14 @@ function ReviewFormCard() {
           </section>
         )}
 
+        {group && (
+          <section className="review-section">
+            <span className="review-label">Group applicants</span>
+            <div className="review-primary"><strong>{form.groupApplicantCount ?? 2} applicants</strong><BadgeCheck size={17} /></div>
+            <p>One shared site and schedule, with separate demonstration codes per applicant after payment.</p>
+          </section>
+        )}
+
         <section className="review-section">
           <span className="review-label">Applicant</span>
           <div className="review-primary"><strong>{form.profile.fullName}</strong><BadgeCheck size={17} /></div>
@@ -231,7 +302,7 @@ function ReviewFormCard() {
 
         <section className="review-section compact-grid">
           <div><span className="review-label">Contact</span><strong>{form.profile.mobile}</strong><p>{form.profile.email}</p></div>
-          <div><span className="review-label">Requested change</span><strong>{informationChange === 'MARRIED_SURNAME' ? 'Use married surname' : 'No biographical changes'}</strong></div>
+          <div><span className="review-label">{group ? 'Appointment type' : 'Requested change'}</span><strong>{group ? 'Group appointment' : informationChange === 'MARRIED_SURNAME' ? 'Use married surname' : 'No biographical changes'}</strong></div>
         </section>
 
         <section className="requirements-box">
@@ -259,6 +330,7 @@ function ReviewFormCard() {
 
 function ProcessingCards() {
   const choose = useDemoStore((state) => state.chooseProcessing);
+  const applicantCount = useDemoStore((state) => (state.service === 'GROUP' ? state.groupApplicantCount ?? 2 : 1));
   return (
     <ChoiceList label="Processing type">
       <div className="processing-grid">
@@ -267,8 +339,8 @@ function ProcessingCards() {
           return (
             <button key={type} type="button" className="processing-card" onClick={() => choose(type)}>
               <div><span className="eyebrow">{type === 'REGULAR' ? 'Standard choice' : 'Faster option'}</span><strong>{type === 'REGULAR' ? 'Regular' : 'Expedited'}</strong></div>
-              <span className="fee-total">{peso(fee.total)}</span>
-              <small>{peso(fee.processing)} processing + {peso(fee.convenience)} convenience</small>
+              <span className="fee-total">{peso(fee.total * applicantCount)}</span>
+              <small>{peso(fee.total)} x {applicantCount} applicant{applicantCount > 1 ? 's' : ''}</small>
             </button>
           );
         })}
@@ -278,9 +350,10 @@ function ProcessingCards() {
 }
 
 function AppointmentReviewCard() {
-  const { selectedOffice, selectedDate, selectedTime, service, processingType, createHold } = useDemoStore();
+  const { selectedOffice, selectedDate, selectedTime, service, groupApplicantCount, processingType, createHold } = useDemoStore();
   const fee = demoFee(processingType);
   if (!selectedOffice || !selectedDate || !selectedTime || !processingType || !fee) return null;
+  const applicantCount = service === 'GROUP' ? groupApplicantCount ?? 2 : 1;
   return (
     <ChoiceList label="Appointment review">
       <article className="appointment-review-card">
@@ -290,9 +363,10 @@ function AppointmentReviewCard() {
         </div>
         <dl className="summary-list">
           <div><dt>Office</dt><dd>{selectedOffice.name}</dd></div>
-          <div><dt>Service</dt><dd>{service === 'ADULT_RENEWAL' ? 'Adult ePassport renewal' : 'New adult passport'}</dd></div>
+          <div><dt>Service</dt><dd>{serviceLabel(service)}</dd></div>
+          {service === 'GROUP' && <div><dt>Applicants</dt><dd>{applicantCount} people - separate applicant codes</dd></div>}
           <div><dt>Processing</dt><dd>{processingType === 'REGULAR' ? 'Regular' : 'Expedited'}</dd></div>
-          <div className="total-row"><dt>Total</dt><dd>{peso(fee.total)}</dd></div>
+          <div className="total-row"><dt>Total</dt><dd>{peso(fee.total * applicantCount)}</dd></div>
         </dl>
         <div className="inline-notice"><ShieldCheck size={17} /><span>This confirmation creates only a temporary 10-minute hold. It does not confirm an appointment.</span></div>
         <button className="primary-button full" type="button" onClick={() => void createHold()}>
@@ -418,13 +492,20 @@ function ConfirmationCard() {
       <article className="confirmation-card">
         <div className="success-orbit"><CheckCircle2 size={34} /></div>
         <span className="eyebrow">Server verified · appointment confirmed</span>
-        <h3>You’re booked for the demonstration</h3>
+        <h3>{appointment.service === 'GROUP' ? 'Your group is booked for the demonstration' : 'You are booked for the demonstration'}</h3>
         <p className="appointment-code">{appointment.code}</p>
+        {appointment.groupAppointmentCodes?.length ? (
+          <div className="group-code-list">
+            {appointment.groupAppointmentCodes.map((code, index) => (
+              <span key={code}><strong>Applicant {index + 1}</strong>{code}</span>
+            ))}
+          </div>
+        ) : null}
         <div className="mini-qr" aria-label="Demonstration appointment QR code"><QrCode size={68} strokeWidth={1.25} /></div>
         <dl className="summary-list">
           <div><dt>Office</dt><dd>{appointment.office.name}</dd></div>
           <div><dt>Date & time</dt><dd>{longDate(appointment.date)} · {timeLabel(appointment.time)}</dd></div>
-          <div><dt>Service</dt><dd>{appointment.service === 'ADULT_RENEWAL' ? 'Adult ePassport renewal' : 'New adult passport'}</dd></div>
+          <div><dt>Service</dt><dd>{serviceLabel(appointment.service)}</dd></div>
           <div><dt>Payment</dt><dd>{peso(appointment.amountPaid)} · Verified</dd></div>
         </dl>
         <div className="document-warning">{DOCUMENT_WARNING}</div>
@@ -540,18 +621,22 @@ function CurrentInteraction() {
           <div className="chip-list">{changeOptions.map((option) => <button key={option.value} type="button" onClick={() => state.chooseChange(option.value)}>{option.label}</button>)}</div>
         </ChoiceList>
       );
+    case 'SELECT_GROUP_SIZE':
+      return <GroupSizeCard />;
+    case 'REVIEW_GROUP_APPLICANTS':
+      return <GroupApplicantsCard />;
     case 'REQUEST_LOCATION':
       return (
         <ChoiceList label="Location choices">
           <div className="location-actions">
             <button className="primary-button full" type="button" onClick={() => void state.findOffices('location')}><LocateFixed size={18} /> Allow location</button>
-            <div className="manual-cities"><span>Or choose a city</span>{['Quezon City', 'Manila', 'Antipolo', 'Pasig'].map((city) => <button key={city} type="button" onClick={() => void state.findOffices('manual', city)}>{city}</button>)}</div>
+            <div className="manual-cities"><span>Or choose a city</span>{['Quezon City', 'Manila', 'Antipolo', 'Pasig', 'Cebu City', 'Davao City'].map((city) => <button key={city} type="button" onClick={() => void state.findOffices('manual', city)}>{city}</button>)}</div>
             <button className="text-button full" type="button" onClick={() => void state.findOffices('all')}><MapPin size={17} /> View all DFA locations</button>
           </div>
         </ChoiceList>
       );
     case 'FINDING_OFFICES':
-      return <div className="loading-card"><LocateFixed size={22} /><span>Finding synthetic DFA offices…</span></div>;
+      return <div className="loading-card"><LocateFixed size={22} /><span>Finding DFA locations...</span></div>;
     case 'SELECT_OFFICE':
       return <ChoiceList label="DFA offices"><div className="office-list">{state.offices.map((office) => <OfficeCard key={office.id} office={office} onSelect={() => void state.selectOffice(office)} />)}</div></ChoiceList>;
     case 'SELECT_DATE':

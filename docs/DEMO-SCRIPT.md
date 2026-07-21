@@ -22,7 +22,7 @@ Narration: “The citizen can type naturally, but structured choices keep them f
 2. Select **DFA Antipolo — Demo**.
 3. Choose **Morning**, then **Activate Slot Watch**.
 4. Select **Trigger Slot Watch** in Demo Control Center.
-5. Show the in-app alert and, if enabled, the lock-screen-safe browser notification.
+5. Show the in-app alert and Notification Center update.
 6. Select **Reserve and continue**.
 
 Narration: “Slot Watch uses a first-come queue. A single cancellation is temporarily offered to one eligible citizen, not broadcast to everyone.”
@@ -65,5 +65,5 @@ Narration: “The model does not decide this status. Every update originates fro
 
 - If geolocation is denied, select **Antipolo** manually.
 - If the AI endpoint is unavailable, point out **Guided mode** and continue normally.
-- If browser notifications are denied, use the in-app toast and Notification Center.
+- Status updates stay inside the in-app toast and Notification Center.
 - If a control rejects a Passport Journey jump, explain that the deterministic guardrail is working and select the next valid status.
