@@ -1,0 +1,32 @@
+{
+  "name": "egovai-passport-concierge",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run build -w @egovai/core && concurrently -k -n server,web -c blue,cyan \"npm run dev -w @egovai/server\" \"npm run dev -w @egovai/web\"",
+    "dev:web": "npm run build -w @egovai/core && npm run dev -w @egovai/web",
+    "dev:server": "npm run build -w @egovai/core && npm run dev -w @egovai/server",
+    "build": "npm run build -w @egovai/core && npm run build -w @egovai/server && npm run build -w @egovai/web",
+    "typecheck": "npm run build -w @egovai/core && npm run typecheck -w @egovai/server && npm run typecheck -w @egovai/web && npm run typecheck -w @egovai/core",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.32.0",
+    "@types/node": "^24.1.0",
+    "concurrently": "^9.2.0",
+    "eslint": "^9.32.0",
+    "globals": "^16.3.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.38.0",
+    "vitest": "^3.2.4"
+  }
+}
