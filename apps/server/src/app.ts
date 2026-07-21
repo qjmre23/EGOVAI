@@ -10,6 +10,9 @@ import {
 import cors from 'cors';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import helmet from 'helmet';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { z, ZodError } from 'zod';
 import { generateAssistantResponse } from './ai/client.js';
 import { config } from './config.js';
@@ -264,7 +267,15 @@ app.post('/api/demo/reset', (_req, res) => {
   res.json({ ok: true });
 });
 
-app.use((_req, res) => res.status(404).json({ error: 'Demo endpoint not found' }));
+// In production, serve the built Vite frontend and handle SPA routing
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
+const webDist = join(__dirname, '../../web/dist');
+if (existsSync(webDist)) {
+  app.use(express.static(webDist));
+  app.get('*', (_req, res) => res.sendFile(join(webDist, 'index.html')));
+} else {
+  app.use((_req, res) => res.status(404).json({ error: 'Demo endpoint not found' }));
+}
 
 app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
   if (error instanceof ZodError) {
