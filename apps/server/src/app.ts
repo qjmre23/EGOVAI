@@ -11,6 +11,7 @@ import cors from 'cors';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import helmet from 'helmet';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { z, ZodError } from 'zod';
 import { generateAssistantResponse } from './ai/client.js';
 import { config } from './config.js';
@@ -281,8 +282,9 @@ app.post('/api/demo/reset', (_req, res) => {
   res.json({ ok: true });
 });
 
-// Serve built Vite frontend; fall back to API 404 for unmatched /api/* paths
-const webDist = join(process.cwd(), 'apps/web/dist');
+// Serve built Vite frontend using the compiled file's own location — reliable regardless of cwd
+const webDist = fileURLToPath(new URL('../../web/dist', import.meta.url));
+console.log('[static] serving frontend from', webDist);
 app.use(express.static(webDist));
 app.get('/{*path}', (_req, res) => res.sendFile(join(webDist, 'index.html')));
 
