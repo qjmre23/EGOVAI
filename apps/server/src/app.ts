@@ -272,7 +272,7 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const webDist = join(__dirname, '../../web/dist');
 if (existsSync(webDist)) {
   app.use(express.static(webDist));
-  app.get('*', (_req, res) => res.sendFile(join(webDist, 'index.html')));
+  app.get('/{*path}', (_req, res) => res.sendFile(join(webDist, 'index.html')));
 } else {
   app.use((_req, res) => res.status(404).json({ error: 'Demo endpoint not found' }));
 }
