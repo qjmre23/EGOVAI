@@ -1,4 +1,5 @@
 import {
+  DEMO_OFFICES,
   DEMO_PROFILE,
   FEES,
   fallbackForState,
@@ -605,15 +606,19 @@ export const useDemoStore = create<DemoState>((set, get) => {
       try {
         const slotOffer = await api<SlotOffer>('/api/demo/slot-watch/trigger', { method: 'POST' });
         set({ slotOffer, conversationState: 'SLOT_OFFER_AVAILABLE' });
+        const officeName =
+          get().selectedOffice?.name ??
+          DEMO_OFFICES.find((o) => o.id === slotOffer.slot.officeId)?.name ??
+          'your selected office';
         addAssistant(
-          `A ${slotOffer.slot.date} appointment at ${get().selectedOffice?.name ?? 'your selected office'} became available at ${slotOffer.slot.time}. Would you like to reserve it?`,
+          `A ${slotOffer.slot.date} appointment at ${officeName} became available at ${slotOffer.slot.time}. Would you like to reserve it?`,
           'success',
         );
         get().addToast('A matching demonstration slot is available!', 'success');
         await get().loadNotifications();
         event('Triggered Slot Watch cancellation alert');
       } catch {
-        get().addToast('Activate Slot Watch before triggering an offer.', 'warning');
+        get().addToast('Could not trigger Slot Watch offer.', 'warning');
       }
     },
 

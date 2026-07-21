@@ -355,8 +355,19 @@ export class DemoStore {
     const request = [...this.slotWatches.values()]
       .filter((item) => item.status === 'ACTIVE')
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0];
-    if (!request) throw new Error('No eligible Slot Watch request');
-    return this.createOfferForRequest(request);
+
+    if (request) return this.createOfferForRequest(request);
+
+    // No active watch — auto-create one with the first demo office so the
+    // Demo Control Center button always works regardless of conversation state.
+    const defaultOffice = DEMO_OFFICES[0];
+    const autoRequest = this.createSlotWatch({
+      officeId: defaultOffice.id,
+      dateFrom: defaultOffice.earliestAvailableDate,
+      dateTo: defaultOffice.earliestAvailableDate,
+      timePreference: 'ANY',
+    });
+    return this.createOfferForRequest(autoRequest);
   }
 
   respondToOffer(id: string, response: 'ACCEPTED' | 'DECLINED') {
