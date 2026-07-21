@@ -19,7 +19,23 @@ const app = express();
 
 app.disable('x-powered-by');
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-app.use(cors({ origin: config.WEB_ORIGIN, methods: ['GET', 'POST', 'DELETE'] }));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (
+        !origin ||
+        origin === config.WEB_ORIGIN ||
+        origin.endsWith('.replit.dev') ||
+        origin.endsWith('.repl.co')
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    methods: ['GET', 'POST', 'DELETE'],
+  }),
+);
 app.use(express.json({ limit: '100kb' }));
 
 const asyncRoute =
